@@ -153,7 +153,79 @@ def get_schedule_student(update, context):
     return 'TIME_CHD'
 
 
-def change_schedule_student(update, context): pass
+def change_schedule_student(update, context):
+    query = update.callback_query
+    user_first_name = update.effective_user.first_name
+    user_id = update.effective_user.id
+    context.user_data['user_first_name'] = user_first_name
+    context.user_data['user_id'] = user_id
+    print(context.user_data)
+    if context.user_data.get("time_interval"):
+        keyboard = [
+            [InlineKeyboardButton("8:00 - 12:00", callback_data='chg_time_student_1')],
+            [InlineKeyboardButton("12:00 - 16:00", callback_data='chg_time_student_2')],
+            [InlineKeyboardButton("18:00 - 22:00", callback_data='chg_time_student_3')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.effective_message.reply_text(
+            text=f"""Выберите новый интервал""",
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.HTML
+        )
+    else:
+        keyboard = [
+            [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
+            [InlineKeyboardButton("В меню", callback_data='to_menu')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.effective_message.reply_text(
+            text=f"""Сначала отправьте заявку""",
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.HTML
+        )
+    return 'CHG_TIME_STUDENT'
+
+
+def chg_time_student_1(update, context):
+    context.user_data["time_interval"] = "8:00 - 12:00"
+    return time_student_chgd(update, context)
+
+
+def chg_time_student_2(update, context):
+    context.user_data["time_interval"] = "12:00 - 16:00"
+    return time_student_chgd(update, context)
+
+
+def chg_time_student_3(update, context):
+    context.user_data["time_interval"] = "18:00 - 22:00"
+    return time_student_chgd(update, context)
+
+
+def time_student_chgd(update, context):
+    query = update.callback_query
+    user_first_name = update.effective_user.first_name
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    context.user_data['user_first_name'] = user_first_name
+    context.user_data['user_id'] = user_id
+
+    ind = list(map(lambda x: x["tg_username"], STUDENTS["students"])).index(username)
+    student = STUDENTS["students"][ind]
+    student["times"] = [context.user_data["time_interval"]]
+
+    keyboard = [
+        [InlineKeyboardButton("В меню", callback_data='to_menu')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.effective_message.reply_text(
+        text=f"""Временное окно было изменено""",
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.HTML
+    )
+    print(STUDENTS)
+    return 'TIME_CHD'
+
+
 def get_schedule_pm(update, context): pass
 def change_schedule_pm(update, context): pass
 def send_mailing_groups(update, context): pass
@@ -185,6 +257,13 @@ def main():
                 CallbackQueryHandler(ch_time_student_1, pattern='ch_time_student_1'),
                 CallbackQueryHandler(ch_time_student_2, pattern='ch_time_student_2'),
                 CallbackQueryHandler(ch_time_student_3, pattern='ch_time_student_3'),
+            ],
+            'CHG_TIME_STUDENT': [
+                CallbackQueryHandler(start_conversation, pattern='to_menu'),
+                CallbackQueryHandler(send_query, pattern='send_query'),
+                CallbackQueryHandler(chg_time_student_1, pattern='chg_time_student_1'),
+                CallbackQueryHandler(chg_time_student_2, pattern='chg_time_student_2'),
+                CallbackQueryHandler(chg_time_student_3, pattern='chg_time_student_3'),
             ],
             'TIME_CHD': [
                 CallbackQueryHandler(start_conversation, pattern='to_menu'),
