@@ -20,7 +20,7 @@ from telegram.ext import (
     ConversationHandler
 )
 
-PMS = {"pms": [{"tg_username": "Matvey256", "times": [""]}]}  # will json
+PMS = {"pms": [{"tg_username": "Matvey256", "times": []}, {"tg_username": "Matvey256", "times": [""]}]}  # will json
 ADMINS = {"admins": {}}  # will json
 STUDENTS = {"students": [{"tg_username": "Matvey2566", "times": [], "level": "junior", "is_actived": True}]}  # will json
 
@@ -41,6 +41,7 @@ def start_conversation(update, context):
             [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
             [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_student')],
             [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_student')],
+            [InlineKeyboardButton("Отказаться от записи", callback_data='cancel_query')],
         ]
         filepath = os.path.join("static/", "greetingsStudent.jpg")
     elif username in list(map(lambda x: x["tg_username"], PMS["pms"])):
@@ -50,7 +51,7 @@ def start_conversation(update, context):
             [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_pm')],
             [InlineKeyboardButton("Сделать рассылку в группы", callback_data='send_mailing_groups')],
         ]
-        filepath = os.path.join("static/", "greetingsPM.jpg")
+        filepath = os.path.join("static/", "greetingsPM.png")
     elif username in list(map(lambda x: x["tg_username"], ADMINS["admins"])):
         context.user_data["role"] = "admin"
         keyboard = [
@@ -58,7 +59,7 @@ def start_conversation(update, context):
             [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_admin')],
             [InlineKeyboardButton("Сделать рассылку", callback_data='send_mailing')],
         ]
-        filepath = os.path.join("static/", "greetingsAdmin.jpg")
+        filepath = os.path.join("static/", "greetingsAdmin.png")
     reply_markup = InlineKeyboardMarkup(keyboard)
     with open(filepath, 'rb') as file:
         update.effective_message.reply_photo(
@@ -226,6 +227,33 @@ def time_student_chgd(update, context):
     return 'TIME_CHD'
 
 
+def cancel_query(update, context):
+    query = update.callback_query
+    user_first_name = update.effective_user.first_name
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    context.user_data['user_first_name'] = user_first_name
+    context.user_data['user_id'] = user_id
+
+    context.user_data["time_interval"] = None
+    ind = list(map(lambda x: x["tg_username"], STUDENTS["students"])).index(username)
+    student = STUDENTS["students"][ind]
+    student["times"] = []
+    # Добавить удаление из составленного расписания
+
+    keyboard = [
+        [InlineKeyboardButton("В меню", callback_data='to_menu')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.effective_message.reply_text(
+        text=f"""Ваша заявка отменена""",
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.HTML
+    )
+    print(STUDENTS)
+    return 'TIME_CHD'
+
+
 def get_schedule_pm(update, context): pass
 def change_schedule_pm(update, context): pass
 def send_mailing_groups(update, context): pass
@@ -246,6 +274,7 @@ def main():
                 CallbackQueryHandler(send_query, pattern='send_query'),
                 CallbackQueryHandler(get_schedule_student, pattern='get_schedule_student'),
                 CallbackQueryHandler(change_schedule_student, pattern='change_schedule_student'),
+                CallbackQueryHandler(cancel_query, pattern='cancel_query'),
                 CallbackQueryHandler(get_schedule_pm, pattern='get_schedule_pm'),
                 CallbackQueryHandler(change_schedule_pm, pattern='change_schedule_pm'),
                 CallbackQueryHandler(send_mailing_groups, pattern='send_mailing_groups'),
@@ -272,7 +301,6 @@ def main():
         fallbacks=[CommandHandler('cancel', start_conversation)],
         per_chat=False
     )
-
     dispatcher.add_handler(conv_handler)
     start_handler = CommandHandler('start', start_conversation)
     dispatcher.add_handler(start_handler)
