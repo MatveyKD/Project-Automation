@@ -7,6 +7,9 @@ class ProjectManager(models.Model):
     telegram_chat_id = models.CharField(max_length=50, unique=True)
     period = models.CharField(max_length=20)
 
+    class Meta:
+        app_label = 'admin_panel'
+
     def __str__(self):
         return f'{self.full_name} {self.period}'
 
@@ -17,7 +20,7 @@ class Student(models.Model):
     telegram_chat_id = models.CharField(max_length=50, unique=True, blank=True)
     level = models.CharField(max_length=50)
     registration_time = models.DateTimeField(auto_now_add=True)
-    period_requested = models.CharField(max_length=15, blank=True)
+    period_requested = models.CharField(max_length=15, blank=True, null=True)
     status = models.CharField(max_length=50)
     team = models.ForeignKey(
         'Team',
@@ -26,6 +29,9 @@ class Student(models.Model):
         blank=True,
         null=True
     )
+
+    class Meta:
+        app_label = 'admin_panel'
 
     def __str__(self):
         return f'{self.full_name} {self.level}'
@@ -44,6 +50,9 @@ class Team(models.Model):
     status = models.CharField(max_length=20)
     brief = models.CharField(max_length=20)
     trello_board_link = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'admin_panel'
 
     def __str__(self):
         return f'{self.project_manager} {self.timeslot} {self.students}'
