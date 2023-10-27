@@ -17,6 +17,7 @@ class Student(models.Model):
     telegram_chat_id = models.CharField(max_length=50, unique=True, blank=True)
     level = models.CharField(max_length=50)
     registration_time = models.DateTimeField(auto_now_add=True)
+    period_requested = models.CharField(max_length=15, blank=True)
     status = models.CharField(max_length=50)
     team = models.ForeignKey(
         'Team',

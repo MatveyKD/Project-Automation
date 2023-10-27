@@ -19,6 +19,8 @@ from telegram.ext import (
     PreCheckoutQueryHandler,
     ConversationHandler
 )
+from project_automation_admin.project_automation_admin.settings import STATIC_URL
+from project_automation_admin.admin_panel.models import Student, ProjectManager, Team
 
 PMS = {"pms": [{"tg_username": "Matvey256", "times": []}, {"tg_username": "Matvey256", "times": [""]}]}  # will json
 ADMINS = {"admins": {}}  # will json
@@ -35,23 +37,25 @@ def start_conversation(update, context):
     username = update.effective_user.username
     keyboard = []
     filepath = ""
-    if username in list(map(lambda x: x["tg_username"], STUDENTS["students"])):
+    if username in list(map(lambda x: x.username, list(Student.objects.all()))):
         context.user_data["role"] = "student"
+        context.user_data["student"] = Student.objects.get(username=username)
         keyboard = [
             [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
             [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_student')],
             [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_student')],
             [InlineKeyboardButton("Отказаться от записи", callback_data='cancel_query')],
         ]
-        filepath = os.path.join("static/", "greetingsStudent.jpg")
-    elif username in list(map(lambda x: x["tg_username"], PMS["pms"])):
+        filepath = os.path.join(STATIC_URL, "greetingsStudent.jpg")
+    elif username in list(map(lambda x: x.telegram_nickname, list(ProjectManager.objects.all()))):
         context.user_data["role"] = "pm"
+        context.user_data["pm"] = Student.objects.get(telegram_nickname=username)
         keyboard = [
             [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_pm')],
             [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_pm')],
             [InlineKeyboardButton("Сделать рассылку в группы", callback_data='send_mailing_groups')],
         ]
-        filepath = os.path.join("static/", "greetingsPM.png")
+        filepath = os.path.join(STATIC_URL, "greetingsPM.png")
     elif username in list(map(lambda x: x["tg_username"], ADMINS["admins"])):
         context.user_data["role"] = "admin"
         keyboard = [
@@ -59,7 +63,7 @@ def start_conversation(update, context):
             [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_admin')],
             [InlineKeyboardButton("Сделать рассылку", callback_data='send_mailing')],
         ]
-        filepath = os.path.join("static/", "greetingsAdmin.png")
+        filepath = os.path.join(STATIC_URL, "greetingsAdmin.png")
     reply_markup = InlineKeyboardMarkup(keyboard)
     with open(filepath, 'rb') as file:
         update.effective_message.reply_photo(
@@ -114,6 +118,8 @@ def time_student_chd(update, context):
     context.user_data['user_first_name'] = user_first_name
     context.user_data['user_id'] = user_id
 
+    student = context.user_data["student"]
+    student.
     ind = list(map(lambda x: x["tg_username"], STUDENTS["students"])).index(username)
     student = STUDENTS["students"][ind]
     student["times"] = [context.user_data["time_interval"]]
