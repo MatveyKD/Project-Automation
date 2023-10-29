@@ -19,9 +19,9 @@ class Student(models.Model):
     username = models.CharField(max_length=50, blank=True, null=True)
     telegram_chat_id = models.CharField(max_length=50, blank=True, null=True)
     level = models.CharField(max_length=50)
-    registration_time = models.DateTimeField()
+    registration_time = models.DateTimeField(blank=True, null=True)
     period_requested = models.CharField(max_length=15, blank=True, null=True)
-    status = models.CharField(max_length=50, blank=True, null=True)
+    status = models.CharField(max_length=50, default="missing")
     team = models.ForeignKey(
         'Team',
         on_delete=models.CASCADE,
@@ -48,9 +48,8 @@ class Team(models.Model):
     level = models.CharField(max_length=20, blank=True, null=True)
     students = models.ManyToManyField(
         'Student',
-        related_name='students',
-        blank=True,
-        null=True
+        related_name='student_team',
+        blank=True
         )
     status = models.CharField(max_length=20, default='empty')
     brief = models.CharField(max_length=20, blank=True, null=True)
@@ -60,4 +59,4 @@ class Team(models.Model):
         app_label = 'admin_panel'
 
     def __str__(self):
-        return f'{self.project_manager} {self.timeslot} {self.students}'
+        return f'{self.project_manager} {self.timeslot} {self.status}'
