@@ -298,11 +298,13 @@ class Command(BaseCommand):
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.effective_message.reply_text(
-                text=f"""Расписание создано""",
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
+            filepath = os.path.join(STATIC_URL, "gotovo.jpg")
+            with open(filepath, 'rb') as file:
+                update.effective_message.reply_photo(
+                    photo=file,
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
             return 'SCHEDULE_CREATE'
 
         def get_schedule_admin(update, context):
@@ -318,7 +320,7 @@ class Command(BaseCommand):
             with open(filepath, 'rb') as file:
                 update.effective_message.reply_document(
                     document=file,
-                    caption=f"""Расписание++""",
+                    caption=f"""Расписание""",
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML
                 )
