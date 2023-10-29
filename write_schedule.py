@@ -1,5 +1,16 @@
 import pandas as pd
 import numpy as np
+import os
+import django
+
+os.environ.setdefault(
+    'DJANGO_SETTINGS_MODULE',
+    'project_automation_admin.settings'
+    )
+django.setup()
+
+
+from admin_panel.models import ProjectManager, Student, Team
 
 
 data_sett = {
@@ -33,43 +44,77 @@ data_jsonn_nd = {"neuds": [
 ]}
 
 
-def format_data(data_json):
+def format_data():
     data_set = {
         "PM": [], "Timeslot": [], "Level": [], "Students": [], "Trello": []
     }
-    for team in data_json["teams"]:
-        data_set["PM"].append(team["PM"])
-        data_set["Timeslot"].append(team["Timeslot"])
-        data_set["Level"].append(team["Level"])
+    for team in Team.objects.all():
+        data_set["PM"].append(team.project_manager.full_name)
+        data_set["Timeslot"].append(team.timeslot)
+        data_set["Level"].append(team.level)
         students = ""
-        for std in team["Students"][:len(team["Students"])-1]: students += std + ", "
-        students += team["Students"][-1]
+        for student in team.students.all():
+            students += student.full_name + ", "
+        students = students[:len(students)-2]
         data_set["Students"].append(students)
-        data_set["Trello"].append(team["Trello"])
+        data_set["Trello"].append(team.trello_board_link)
     return data_set
 
 
-def format_data_neuds(data_json):
+def format_data_neuds():
     data_set = {
-        "Student": [], "Level": [], "Status": [], "Interval-requested": []
+        "Student": [], "TG-nickname": [], "Level": [], "Status": [], "Period requested": []
     }
-    for student in data_json["neuds"]:
-        data_set["Student"].append(student["Student"])
-        data_set["Level"].append(student["Level"])
-        data_set["Status"].append(student["Status"])
-        data_set["Interval-requested"].append(student["Interval-requested"])
+    for student in Student.objects.filter(status="waiting"):
+        data_set["Student"].append(student.full_name)
+        if student.username: data_set["TG-username"].append(f"@{student.username}")
+        else: data_set["TG-nickname"].append(None)
+        data_set["Level"].append(student.level)
+        data_set["Status"].append("waiting")
+        data_set["Period requested"].append(student.period_requested)
+        # data_set["Student"].append(student["Student"])
+        # data_set["Level"].append(student["Level"])
+        # data_set["Status"].append(student["Status"])
+        # data_set["Interval-requested"].append(student["Interval-requested"])
     return data_set
 
 
-# Converting into dataframe
-df = pd.DataFrame(format_data(data_jsonn))
-df_nd = pd.DataFrame(format_data_neuds(data_jsonn_nd))
+def format_data_students():
+    data_set = {
+        "Student": [], "TG-nickname": [], "Level": [], "Status": [], "Period requested": [], "Team": []
+    }
+    for student in Student.objects.all():
+        data_set["Student"].append(student.full_name)
+        if student.username:
+            data_set["TG-username"].append(f"@{student.username}")
+        else:
+            data_set["TG-nickname"].append(None)
+        data_set["Level"].append(student.level)
+        data_set["Status"].append(student.status)
+        data_set["Period requested"].append(student.period_requested)
+        if student.student_team.all().count() > 0:
+            data_set["Team"].append(student.student_team.all()[0].timeslot)
+        else:
+            data_set["Team"].append(None)
+    return data_set
 
-# Writing the data into the excel sheet
-writer_obj = pd.ExcelWriter('Write.xlsx', engine='xlsxwriter')
 
-df.to_excel(writer_obj, sheet_name='Teams')
-df_nd.to_excel(writer_obj, sheet_name='"Неудачники"')
+def write_schedule(file_name):
+    # Converting into dataframe
+    df = pd.DataFrame(format_data())
+    df_nd = pd.DataFrame(format_data_neuds())
+    df_all = pd.DataFrame(format_data_students())
 
-writer_obj.save()
-print('Please check out the Write.xlsx file.')
+    # Writing the data into the excel sheet
+    writer_obj = pd.ExcelWriter(f'{file_name}.xlsx', engine='xlsxwriter')
+
+    df.to_excel(writer_obj, sheet_name='Команды')
+    df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
+    df_all.to_excel(writer_obj, sheet_name='Все ученики')
+
+    writer_obj.save()
+    print('Please check out the Write.xlsx file.')
+
+
+if __name__ == "__main__":
+    write_schedule("Schedule")
