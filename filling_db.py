@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import timedelta
+import datetime
 import random
 
 import django
@@ -34,26 +34,32 @@ def filling_students_db(student_file):
         data_students = json.load(students_file)
 
     for student in data_students:
-        current_datetime = timezone.now()
-        start_date = current_datetime
-        end_date = current_datetime + timedelta(weeks=2)
-        random_datetime = start_date + timedelta(seconds=random.randint(
-            0,
-            int((end_date - start_date).total_seconds())
-            ))
+        # current_datetime = timezone.now()
+        # start_date = current_datetime
+        # end_date = current_datetime + timedelta(weeks=2)
+        # random_datetime = start_date + timedelta(seconds=random.randint(
+        #     0,
+        #     int((end_date - start_date).total_seconds())
+        #     ))
 
+        if student.get('Registered'):
+            registered = datetime.datetime.strptime(str(student.get('Registered')), "%d:%m:%y %H:%M")
+        else:
+            registered = None
         Student.objects.create(
             full_name=student.get('Student'),
             username=student.get('Nickname'),
             telegram_chat_id=student.get('Chat_id'),
             level=student.get('Level'),
-            registration_time=random_datetime,
+            registration_time=registered,
             period_requested=student.get('Period_requsted'),
             status=student.get('Status')
         )
 
 
 def main():
+    Student.objects.all().delete()
+    ProjectManager.objects.all().delete()
     filling_pms_db('dataPms.json')
     filling_students_db('dataStudents.json')
 
