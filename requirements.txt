@@ -1,0 +1,4 @@
+Django~=4.1.2
+python-dotenv~=0.21.0
+environs~=9.5.0
+pandas~=2.1.2
