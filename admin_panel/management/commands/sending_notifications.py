@@ -41,12 +41,13 @@ def send_schedule(bot, schedule):
             other = ""
             for std_oth in team["students"]:
                 other += std_oth["name"] + " @" + std_oth["tg_username"] + "\n"
-                bot.send_message(
-                    chat_id=tg_id,
-                    text=f"""{time} {level} PM: {pm}
+                if tg_id:
+                    bot.send_message(
+                        chat_id=tg_id,
+                        text=f"""{time} {level} PM: {pm}
 {other}
 Trello: {trello}"""
-                )
+                    )
 
 
 if __name__ == "__main__":

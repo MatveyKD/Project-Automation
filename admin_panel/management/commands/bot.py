@@ -1,9 +1,7 @@
-import telegram
 import os
 from dotenv import load_dotenv
 from django.core.management.base import BaseCommand
-import django
-#from project_automation_admin2.project_automation_admin2.wsgi import *
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -22,10 +20,17 @@ from telegram.ext import (
     PreCheckoutQueryHandler,
     ConversationHandler
 )
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project_automation_admin2.project_automation_admin2.settings')
-# django.setup()
-from project_automation_admin.settings import STATIC_URL
+from project_automation_admin.settings import STATIC_URL, BASE_DIR
 from admin_panel.models import Student, ProjectManager, Team
+
+from write_schedule import write_schedule
+from admin_panel.management.commands.create_teams import create_project_teams
+
+from environs import Env
+
+env = Env()
+env.read_env()
+
 
 PMS = {"pms": [{"tg_username": "Matvey256", "times": []}, {"tg_username": "Matvey256", "times": [""]}]}  # will json
 ADMINS = {"admins": {}}  # will json
@@ -36,7 +41,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         print("H")
         load_dotenv()
-        tg_token = os.getenv("TG_BOT_TOKEN")
+        tg_token = env.str("TG_BOT_TOKEN")
         updater = Updater(token=tg_token, use_context=True)
         dispatcher = updater.dispatcher
 
@@ -53,6 +58,7 @@ class Command(BaseCommand):
             if username in list(map(lambda x: x.username, list(Student.objects.all()))):
                 context.user_data["role"] = "student"
                 student = Student.objects.get(username=username)
+                student.telegram_chat_id = update.effective_user.id
                 student.status = "started"
                 context.user_data["student"] = student
                 keyboard = [
@@ -71,7 +77,7 @@ class Command(BaseCommand):
                     [InlineKeyboardButton("Сделать рассылку в группы", callback_data='send_mailing_groups')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsPM.png")
-            elif username in list(map(lambda x: x["tg_username"], ADMINS["admins"])):
+            elif username in env.list("ADMINS"):
                 context.user_data["role"] = "admin"
                 keyboard = [
                     [InlineKeyboardButton("Создать расписание", callback_data='create_schedule')],
@@ -80,6 +86,7 @@ class Command(BaseCommand):
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsAdmin.png")
             else:
+                print(type(str(list(env.list("ADMINS"))[0])), str(list(env.list("ADMINS"))[0]), username)
                 update.effective_message.reply_text(
                     text=f"""Вас нет в списке учеников. Обратитесь к администратору""",
                     parse_mode=ParseMode.HTML
@@ -101,11 +108,11 @@ class Command(BaseCommand):
             user_id = update.effective_user.id
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
-            keyboard = [
-                [InlineKeyboardButton("8:00 - 12:00", callback_data='ch_time_student_1')],
-                [InlineKeyboardButton("12:00 - 16:00", callback_data='ch_time_student_2')],
-                [InlineKeyboardButton("18:00 - 22:00", callback_data='ch_time_student_3')],
-            ]
+            keyboard = []
+            context.user_data['pms'] = ProjectManager.objects.all()
+            for ind, pm in enumerate(context.user_data['pms']):
+                keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind+1}')]),
+
             reply_markup = InlineKeyboardMarkup(keyboard)
             update.effective_message.reply_text(
                 text=f"""Выберите интервал""",
@@ -115,15 +122,23 @@ class Command(BaseCommand):
             return 'CHS_TIME_STUDENT'
 
         def ch_time_student_1(update, context):
-            context.user_data["time_interval"] = "8:00 - 12:00"
+            context.user_data["time_interval"] = context.user_data['pms'][0].period
             return time_student_chd(update, context)
 
         def ch_time_student_2(update, context):
-            context.user_data["time_interval"] = "12:00 - 16:00"
+            context.user_data["time_interval"] = context.user_data['pms'][1].period
             return time_student_chd(update, context)
 
         def ch_time_student_3(update, context):
-            context.user_data["time_interval"] = "18:00 - 22:00"
+            context.user_data["time_interval"] = context.user_data['pms'][2].period
+            return time_student_chd(update, context)
+
+        def ch_time_student_4(update, context):
+            context.user_data["time_interval"] = context.user_data['pms'][3].period
+            return time_student_chd(update, context)
+
+        def ch_time_student_5(update, context):
+            context.user_data["time_interval"] = context.user_data['pms'][4].period
             return time_student_chd(update, context)
 
         def time_student_chd(update, context):
@@ -181,11 +196,10 @@ class Command(BaseCommand):
             context.user_data['user_id'] = user_id
             print(context.user_data)
             if context.user_data["student"].period_requested:
-                keyboard = [
-                    [InlineKeyboardButton("8:00 - 12:00", callback_data='chg_time_student_1')],
-                    [InlineKeyboardButton("12:00 - 16:00", callback_data='chg_time_student_2')],
-                    [InlineKeyboardButton("18:00 - 22:00", callback_data='chg_time_student_3')],
-                ]
+                keyboard = []
+                context.user_data['pms'] = ProjectManager.objects.all()
+                for ind, pm in enumerate(context.user_data['pms']):
+                    keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind + 1}')]),
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 update.effective_message.reply_text(
                     text=f"""Выберите новый интервал""",
@@ -206,15 +220,23 @@ class Command(BaseCommand):
             return 'CHG_TIME_STUDENT'
 
         def chg_time_student_1(update, context):
-            context.user_data["time_interval"] = "8:00 - 12:00"
+            context.user_data["time_interval"] = context.user_data['pms'][0].period
             return time_student_chgd(update, context)
 
         def chg_time_student_2(update, context):
-            context.user_data["time_interval"] = "12:00 - 16:00"
+            context.user_data["time_interval"] = context.user_data['pms'][1].period
             return time_student_chgd(update, context)
 
         def chg_time_student_3(update, context):
-            context.user_data["time_interval"] = "18:00 - 22:00"
+            context.user_data["time_interval"] = context.user_data['pms'][2].period
+            return time_student_chgd(update, context)
+
+        def chg_time_student_4(update, context):
+            context.user_data["time_interval"] = context.user_data['pms'][3].period
+            return time_student_chgd(update, context)
+
+        def chg_time_student_5(update, context):
+            context.user_data["time_interval"] = context.user_data['pms'][4].period
             return time_student_chgd(update, context)
 
         def time_student_chgd(update, context):
@@ -264,14 +286,44 @@ class Command(BaseCommand):
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
-            print(STUDENTS)
             return 'TIME_CHD'
 
         def get_schedule_pm(update, context): pass
         def change_schedule_pm(update, context): pass
         def send_mailing_groups(update, context): pass
-        def create_schedule(update, context): pass
-        def get_schedule_admin(update, context): pass
+
+        def create_schedule(update, context):
+            create_project_teams()
+            keyboard = [
+                [InlineKeyboardButton("В меню", callback_data='to_menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            update.effective_message.reply_text(
+                text=f"""Расписание создано""",
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
+            return 'SCHEDULE_CREATE'
+
+        def get_schedule_admin(update, context):
+            filename = "Schedule"
+            write_schedule(filename)
+
+            keyboard = [
+                [InlineKeyboardButton("В меню", callback_data='to_menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            filepath = os.path.join(BASE_DIR, f"{filename}.xlsx")
+            with open(filepath, 'rb') as file:
+                update.effective_message.reply_document(
+                    document=file,
+                    caption=f"""Расписание++""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            return 'SCHEDULE_GET'
+
         def send_mailing(update, context): pass
 
         conv_handler = ConversationHandler(
@@ -293,6 +345,8 @@ class Command(BaseCommand):
                     CallbackQueryHandler(ch_time_student_1, pattern='ch_time_student_1'),
                     CallbackQueryHandler(ch_time_student_2, pattern='ch_time_student_2'),
                     CallbackQueryHandler(ch_time_student_3, pattern='ch_time_student_3'),
+                    CallbackQueryHandler(ch_time_student_4, pattern='ch_time_student_4'),
+                    CallbackQueryHandler(ch_time_student_5, pattern='ch_time_student_5'),
                 ],
                 'CHG_TIME_STUDENT': [
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
@@ -300,8 +354,16 @@ class Command(BaseCommand):
                     CallbackQueryHandler(chg_time_student_1, pattern='chg_time_student_1'),
                     CallbackQueryHandler(chg_time_student_2, pattern='chg_time_student_2'),
                     CallbackQueryHandler(chg_time_student_3, pattern='chg_time_student_3'),
+                    CallbackQueryHandler(chg_time_student_4, pattern='chg_time_student_4'),
+                    CallbackQueryHandler(chg_time_student_5, pattern='chg_time_student_5'),
                 ],
                 'TIME_CHD': [
+                    CallbackQueryHandler(start_conversation, pattern='to_menu'),
+                ],
+                'SCHEDULE_GET': [
+                    CallbackQueryHandler(start_conversation, pattern='to_menu'),
+                ],
+                'SCHEDULE_CREATE': [
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
                 ]
             },

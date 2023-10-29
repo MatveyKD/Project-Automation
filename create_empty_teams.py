@@ -35,8 +35,9 @@ def create_empty_teams():
             else: time_slot += str((start_in+30) % 60)
             # time_slot = f"{start_in//60}:{start_in%60} - {(start_in+30)//60}:{(start_in+30)%60}"
 
-            Team.objects.create(
+            team = Team.objects.create(
                 project_manager=pm,
                 timeslot=time_slot
             )
+            team.save()
             start_in += 30

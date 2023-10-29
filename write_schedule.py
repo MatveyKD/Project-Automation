@@ -67,7 +67,7 @@ def format_data_neuds():
     }
     for student in Student.objects.filter(status="waiting"):
         data_set["Student"].append(student.full_name)
-        if student.username: data_set["TG-username"].append(f"@{student.username}")
+        if student.username: data_set["TG-nickname"].append(f"@{student.username}")
         else: data_set["TG-nickname"].append(None)
         data_set["Level"].append(student.level)
         data_set["Status"].append("waiting")
@@ -86,7 +86,7 @@ def format_data_students():
     for student in Student.objects.all():
         data_set["Student"].append(student.full_name)
         if student.username:
-            data_set["TG-username"].append(f"@{student.username}")
+            data_set["TG-nickname"].append(f"@{student.username}")
         else:
             data_set["TG-nickname"].append(None)
         data_set["Level"].append(student.level)
@@ -112,7 +112,8 @@ def write_schedule(file_name):
     df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
     df_all.to_excel(writer_obj, sheet_name='Все ученики')
 
-    writer_obj.save()
+    # writer_obj.save()
+    writer_obj.close()
     print('Please check out the Write.xlsx file.')
 
 
