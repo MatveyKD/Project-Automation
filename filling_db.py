@@ -1,10 +1,8 @@
 import os
 import json
-from datetime import timedelta
-import random
 
 import django
-from django.utils import timezone
+
 
 os.environ.setdefault(
     'DJANGO_SETTINGS_MODULE',
@@ -24,7 +22,6 @@ def filling_pms_db(pms_file):
         ProjectManager.objects.create(
             full_name=pm.get('ProjectManager'),
             telegram_nickname=pm.get('Nickname'),
-            telegram_chat_id=pm.get('Chat_id'),
             period=pm.get('Periods')
             )
 
@@ -34,22 +31,10 @@ def filling_students_db(student_file):
         data_students = json.load(students_file)
 
     for student in data_students:
-        current_datetime = timezone.now()
-        start_date = current_datetime
-        end_date = current_datetime + timedelta(weeks=2)
-        random_datetime = start_date + timedelta(seconds=random.randint(
-            0,
-            int((end_date - start_date).total_seconds())
-            ))
-
         Student.objects.create(
             full_name=student.get('Student'),
             username=student.get('Nickname'),
-            telegram_chat_id=student.get('Chat_id'),
-            level=student.get('Level'),
-            registration_time=random_datetime,
-            period_requested=student.get('Period_requsted'),
-            status=student.get('Status')
+            level=student.get('Level')
         )
 
 
