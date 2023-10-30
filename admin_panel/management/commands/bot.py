@@ -59,7 +59,7 @@ class Command(BaseCommand):
                 keyboard = [
                     [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_student')],
-                    [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_student')],
+                    [InlineKeyboardButton("Изменить заявку", callback_data='change_schedule_student')],
                     [InlineKeyboardButton("<т. р.> Отказаться от записи", callback_data='cancel_query')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsStudent.jpg")
@@ -77,10 +77,10 @@ class Command(BaseCommand):
                 context.user_data["role"] = "admin"
                 user_fullname = env.str("ADMIN_NAME")
                 keyboard = [
+                    [InlineKeyboardButton("<т. р.> Загрузить файлы", callback_data='upload_files')],
                     [InlineKeyboardButton("Создать расписание", callback_data='create_schedule')],
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_admin')],
                     [InlineKeyboardButton("Сделать рассылку", callback_data='send_mailing')],
-                    [InlineKeyboardButton("<т. р.> Загрузить файлы", callback_data='upload_files')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsAdmin.png")
             else:
@@ -378,7 +378,7 @@ Trello: {trello}""",
                 )
             else:
                 update.effective_message.reply_text(
-                    text=f"""Нет сформированных групп. Рассылка не выполена""",
+                    text=f"""Нет сформированных групп. Рассылка не выполнена""",
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML
                 )
