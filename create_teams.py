@@ -6,21 +6,8 @@ from admin_panel.models import Student
 from admin_panel.models import Team
 
 
-class Command(BaseCommand):
-    def handle(self, *args, **kwargs):
-        create_project_teams()
-
-
 def create_project_teams():
     # Проверку наличия студентов для распределения пока опускаем
-    # for st in Student.objects.all():
-    #     if st.status == "fixed":
-    #         st.status = "waiting"
-    #         st.save()
-    # for t in Team.objects.all():
-    #     t.status = "empty"
-    #     t.students.clear()
-    #     t.save()
     pms = ProjectManager.objects.all()
     for pm in pms:
         period = pm.period
@@ -50,16 +37,11 @@ def create_project_teams():
     for team in Team.objects.all():
         print(team.timeslot, team.students.all())
     for std in Student.objects.all():  # filter(status__in=["waiting", "started", "missing"]):
-        # teams = Team.objects.filter(students__contains=std)
         if std.status == "fixed":
             print(std.full_name, std.student_team.all()[0].timeslot)
         else:
             print(std.full_name, "waiting")
 
-    # t = Team.objects.all()[0]
-    # print(t)
-    # t.students.add(Student.objects.all()[0])
-    # print(t.students.all())
-    # t.save()
-    # print(t.students)
-    # print(t)
+
+if __name__ == "__main__":
+    create_project_teams()

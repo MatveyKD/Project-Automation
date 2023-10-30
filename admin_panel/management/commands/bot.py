@@ -18,7 +18,7 @@ from admin_panel.models import Student, ProjectManager
 
 from write_schedule import write_schedule
 from sending_notifications import send_schedule
-from admin_panel.management.commands.create_teams import create_project_teams
+from create_teams import create_project_teams
 
 from environs import Env
 

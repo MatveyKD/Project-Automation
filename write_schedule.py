@@ -75,13 +75,13 @@ def write_schedule(file_name, pm=None):
     # Writing the data into the excel sheet
     writer_obj = pd.ExcelWriter(f'{file_name}.xlsx', engine='xlsxwriter')
     df = pd.DataFrame(format_data(pm=pm))
+    df.to_excel(writer_obj, sheet_name='Команды')
     if not pm:
         df_nd = pd.DataFrame(format_data_neuds())
         df_all = pd.DataFrame(format_data_students())
 
         df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
         df_all.to_excel(writer_obj, sheet_name='Все ученики')
-    df.to_excel(writer_obj, sheet_name='Команды')
     writer_obj.close()
     print('Please check out the Write.xlsx file.')
 
