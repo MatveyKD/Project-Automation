@@ -14,7 +14,7 @@ from telegram.ext import (
     ConversationHandler
 )
 from project_automation_admin.settings import STATIC_URL, BASE_DIR
-from admin_panel.models import Student, ProjectManager
+from admin_panel.models import Student, ProjectManager, Team
 
 from write_schedule import write_schedule
 from sending_notifications import send_schedule
@@ -51,6 +51,7 @@ class Command(BaseCommand):
             if username in list(map(lambda x: x.username, list(Student.objects.all()))):
                 context.user_data["role"] = "student"
                 student = Student.objects.get(username=username)
+                user_fullname = student.full_name
                 student.telegram_chat_id = update.effective_user.id
                 if student.status not in ["fixed", "waiting"]: student.status = "started"
                 student.save()
@@ -59,24 +60,27 @@ class Command(BaseCommand):
                     [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_student')],
                     [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_student')],
-                    [InlineKeyboardButton("<Т. Р.> Отказаться от записи", callback_data='cancel_query')],
+                    [InlineKeyboardButton("<т. р.> Отказаться от записи", callback_data='cancel_query')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsStudent.jpg")
             elif username in list(map(lambda x: x.telegram_nickname, list(ProjectManager.objects.all()))):
                 context.user_data["role"] = "pm"
                 context.user_data["pm"] = ProjectManager.objects.get(telegram_nickname=username)
+                user_fullname = context.user_data["pm"].full_name
                 keyboard = [
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_pm')],
-                    [InlineKeyboardButton("<Т. Р.> Изменить расписание", callback_data='change_schedule_pm')],
+                    [InlineKeyboardButton("<т. р.> Изменить расписание", callback_data='change_schedule_pm')],
                     [InlineKeyboardButton("Сделать рассылку в группы", callback_data='send_mailing_groups')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsPM.png")
             elif username in env.list("ADMINS"):
                 context.user_data["role"] = "admin"
+                user_fullname = env.str("ADMIN_NAME")
                 keyboard = [
                     [InlineKeyboardButton("Создать расписание", callback_data='create_schedule')],
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_admin')],
                     [InlineKeyboardButton("Сделать рассылку", callback_data='send_mailing')],
+                    [InlineKeyboardButton("<т. р.> Загрузить файлы", callback_data='upload_files')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsAdmin.png")
             else:
@@ -90,7 +94,7 @@ class Command(BaseCommand):
             with open(filepath, 'rb') as file:
                 update.effective_message.reply_photo(
                     photo=file,
-                    caption=f"""Приветствую, {context.user_data["role"]}""",
+                    caption=f"""Приветствую, {user_fullname}""",
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML
                 )
@@ -178,17 +182,45 @@ class Command(BaseCommand):
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
 
-            time_interval = context.user_data["student"].period_requested
-
             keyboard = [
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.effective_message.reply_text(
-                text=f"""Ваше временное окно: {time_interval}""",
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
+
+            team = context.user_data["student"].student_team.all()
+            if team.count() > 0:
+                team = team.all()[0]
+                time, pm, level, brief, trello = team.timeslot, team.project_manager.full_name, team.level, team.brief, team.trello_board_link
+                if team.project_manager.telegram_nickname:
+                    pm += " @" + team.project_manager.telegram_nickname
+                students = ""
+                for student in team.students.all():
+                    students += student.full_name
+                    if student.username:
+                        students += " @" + student.username
+                    students += "\n"
+
+                update.effective_message.reply_text(
+                    text=f"""{time} {level}
+PM: {pm}
+{students}
+Brief: {brief}
+Trello: {trello}""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            elif Team.objects.filter(status="full").count() == 0:
+                update.effective_message.reply_text(
+                    text=f"""Нет сформированных групп""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                update.effective_message.reply_text(
+                    text=f"""Для вас не нашлось свободных мест в командах""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
             return 'TIME_CHD'
 
         def change_schedule_student(update, context):
@@ -203,7 +235,7 @@ class Command(BaseCommand):
                     keyboard = []
                     context.user_data['pms'] = ProjectManager.objects.all()
                     for ind, pm in enumerate(context.user_data['pms']):
-                        keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind + 1}')]),
+                        keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'chg_time_student_{ind + 1}')]),
                     reply_markup = InlineKeyboardMarkup(keyboard)
                     update.effective_message.reply_text(
                         text=f"""Выберите новый интервал""",
@@ -330,19 +362,26 @@ class Command(BaseCommand):
                 )
             return 'SCHEDULE_GET'
 
-        def change_schedule_pm(update, context): pass  # <Т. Р.>
+        def change_schedule_pm(update, context): pass  # <т. р.>
 
         def send_mailing_groups(update, context):
-            send_schedule(BOT)
+            successful = send_schedule(BOT, context.user_data["pm"])
             keyboard = [
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.effective_message.reply_text(
-                text=f"""Рассылка отправлена""",
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
+            if successful:
+                update.effective_message.reply_text(
+                    text=f"""Рассылка отправлена""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                update.effective_message.reply_text(
+                    text=f"""Нет сформированных групп. Рассылка не выполена""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
             return 'SEND_MAILING'
 
         def create_schedule(update, context):
@@ -351,13 +390,11 @@ class Command(BaseCommand):
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            filepath = os.path.join(STATIC_URL, "gotovo.jpg")
-            with open(filepath, 'rb') as file:
-                update.effective_message.reply_photo(
-                    photo=file,
-                    reply_markup=reply_markup,
-                    parse_mode=ParseMode.HTML
-                )
+            update.effective_message.reply_text(
+                text="""Обработка выполнена""",
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
             return 'SCHEDULE_CREATE'
 
         def get_schedule_admin(update, context):
@@ -380,16 +417,23 @@ class Command(BaseCommand):
             return 'SCHEDULE_GET'
 
         def send_mailing(update, context):
-            send_schedule(BOT)
+            successful = send_schedule(BOT)
             keyboard = [
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.effective_message.reply_text(
-                text=f"""Рассылка отправлена""",
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
+            if successful:
+                update.effective_message.reply_text(
+                    text=f"""Рассылка отправлена""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                update.effective_message.reply_text(
+                    text=f"""Нет сформированных групп. Рассылка не выполена""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
             return 'SEND_MAILING'
 
         conv_handler = ConversationHandler(

@@ -14,7 +14,7 @@ from admin_panel.models import ProjectManager, Student, Team
 
 def format_data(pm=None):
     data_set = {
-        "PM": [], "Timeslot": [], "Level": [], "Students": [], "Trello": []
+        "PM": [], "Timeslot": [], "Level": [], "Students": [], "Brief": [], "Trello": []
     }
     if pm:
         teams = Team.objects.filter(project_manager=pm).all()
@@ -30,6 +30,7 @@ def format_data(pm=None):
         students = students[:len(students)-2]
         data_set["Students"].append(students)
         data_set["Trello"].append(team.trello_board_link)
+        data_set["Brief"].append(team.brief)
     return data_set
 
 
