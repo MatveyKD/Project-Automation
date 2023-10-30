@@ -5,25 +5,19 @@ from django.core.management.base import BaseCommand
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardRemove,
     ParseMode,
-    LabeledPrice,
-    InputMediaPhoto,
 )
 from telegram.ext import (
     Updater,
-    Filters,
-    MessageHandler,
     CommandHandler,
     CallbackQueryHandler,
-    CallbackContext,
-    PreCheckoutQueryHandler,
     ConversationHandler
 )
 from project_automation_admin.settings import STATIC_URL, BASE_DIR
-from admin_panel.models import Student, ProjectManager, Team
+from admin_panel.models import Student, ProjectManager
 
 from write_schedule import write_schedule
+from sending_notifications import send_schedule
 from admin_panel.management.commands.create_teams import create_project_teams
 
 from environs import Env
@@ -31,18 +25,17 @@ from environs import Env
 env = Env()
 env.read_env()
 
-
-PMS = {"pms": [{"tg_username": "Matvey256", "times": []}, {"tg_username": "Matvey256", "times": [""]}]}  # will json
-ADMINS = {"admins": {}}  # will json
-STUDENTS = {"students": [{"tg_username": "Matvey2566", "times": [], "level": "junior", "is_actived": True}]}  # will json
+BOT = None
 
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
+        global BOT
         print("H")
         load_dotenv()
         tg_token = env.str("TG_BOT_TOKEN")
         updater = Updater(token=tg_token, use_context=True)
+        BOT = updater.bot
         dispatcher = updater.dispatcher
 
         def start_conversation(update, context):
@@ -163,7 +156,6 @@ class Command(BaseCommand):
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
-            print(STUDENTS)
             return 'TIME_CHD'
 
         def get_schedule_student(update, context):
@@ -185,7 +177,6 @@ class Command(BaseCommand):
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
-            print(STUDENTS)
             return 'TIME_CHD'
 
         def change_schedule_student(update, context):
@@ -260,7 +251,6 @@ class Command(BaseCommand):
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
-            print(STUDENTS)
             return 'TIME_CHD'
 
         def cancel_query(update, context):
@@ -326,7 +316,18 @@ class Command(BaseCommand):
                 )
             return 'SCHEDULE_GET'
 
-        def send_mailing(update, context): pass
+        def send_mailing(update, context):
+            send_schedule(BOT)
+            keyboard = [
+                [InlineKeyboardButton("В меню", callback_data='to_menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            update.effective_message.reply_text(
+                text=f"""Рассылка отправлена""",
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
+            return 'SEND_MAILING'
 
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler('start', start_conversation)],
@@ -366,6 +367,9 @@ class Command(BaseCommand):
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
                 ],
                 'SCHEDULE_CREATE': [
+                    CallbackQueryHandler(start_conversation, pattern='to_menu'),
+                ],
+                'SEND_MAILING': [
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
                 ]
             },
