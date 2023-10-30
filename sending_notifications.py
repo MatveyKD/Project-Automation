@@ -43,13 +43,13 @@ def send_schedule(bot, pm=None):
 
         students = ""
         for student in team.students.all():
-            students += student.full_name
-            if student.username:
-                students += " @" + student.username
+            students += student.student.full_name
+            if student.student.username:
+                students += " @" + student.student.username
             students += "\n"
 
         for student in team.students.all():
-            tg_id = student.telegram_chat_id
+            tg_id = student.student.telegram_chat_id
             if tg_id:
                 bot.send_message(
                     chat_id=tg_id,

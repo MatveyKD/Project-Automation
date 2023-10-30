@@ -195,9 +195,9 @@ class Command(BaseCommand):
                     pm += " @" + team.project_manager.telegram_nickname
                 students = ""
                 for student in team.students.all():
-                    students += student.full_name
+                    students += student.student.full_name
                     if student.username:
-                        students += " @" + student.username
+                        students += " @" + student.student.username
                     students += "\n"
 
                 update.effective_message.reply_text(

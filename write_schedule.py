@@ -26,7 +26,7 @@ def format_data(pm=None):
         data_set["Level"].append(team.level)
         students = ""
         for student in team.students.all():
-            students += student.full_name + ", "
+            students += student.student.full_name + ", "
         students = students[:len(students)-2]
         data_set["Students"].append(students)
         data_set["Trello"].append(team.trello_board_link)
@@ -66,7 +66,7 @@ def format_data_students():
         data_set["Status"].append(student.status)
         data_set["Period requested"].append(student.period_requested)
         if student.student_team.all().count() > 0:
-            data_set["Team"].append(student.student_team.all()[0].timeslot)
+            data_set["Team"].append(student.student_team.all()[0].team.timeslot)
         else:
             data_set["Team"].append(None)
     return data_set
