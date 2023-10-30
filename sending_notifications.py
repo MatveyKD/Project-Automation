@@ -42,8 +42,12 @@ SCHEDULE = {"teams": [
 ]}
 
 
-def send_schedule(bot):
-    for team in Team.objects.all():
+def send_schedule(bot, pm=None):
+    if pm:
+        teams = Team.objects.filter(project_manager=pm)
+    else:
+        teams = Team.objects.all()
+    for team in teams:
         # time, pm, level, trello = team["time"], team["pm"]["name"]+" @"+team["pm"]["tg_username"], team["level"], team["trello"]
         time, pm, level, brief, trello = team.timeslot, team.project_manager.full_name, team.level, team.brief, team.trello_board_link
         if team.project_manager.telegram_nickname:

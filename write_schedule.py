@@ -12,11 +12,15 @@ django.setup()
 from admin_panel.models import ProjectManager, Student, Team
 
 
-def format_data():
+def format_data(pm=None):
     data_set = {
         "PM": [], "Timeslot": [], "Level": [], "Students": [], "Trello": []
     }
-    for team in Team.objects.all():
+    if pm:
+        teams = Team.objects.filter(project_manager=pm).all()
+    else:
+        teams = Team.objects.all()
+    for team in teams:
         data_set["PM"].append(team.project_manager.full_name)
         data_set["Timeslot"].append(team.timeslot)
         data_set["Level"].append(team.level)
@@ -67,20 +71,17 @@ def format_data_students():
     return data_set
 
 
-def write_schedule(file_name):
-    # Converting into dataframe
-    df = pd.DataFrame(format_data())
-    df_nd = pd.DataFrame(format_data_neuds())
-    df_all = pd.DataFrame(format_data_students())
-
+def write_schedule(file_name, pm=None):
     # Writing the data into the excel sheet
     writer_obj = pd.ExcelWriter(f'{file_name}.xlsx', engine='xlsxwriter')
+    df = pd.DataFrame(format_data(pm=pm))
+    if not pm:
+        df_nd = pd.DataFrame(format_data_neuds())
+        df_all = pd.DataFrame(format_data_students())
 
+        df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
+        df_all.to_excel(writer_obj, sheet_name='Все ученики')
     df.to_excel(writer_obj, sheet_name='Команды')
-    df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
-    df_all.to_excel(writer_obj, sheet_name='Все ученики')
-
-    # writer_obj.save()
     writer_obj.close()
     print('Please check out the Write.xlsx file.')
 

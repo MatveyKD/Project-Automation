@@ -52,21 +52,22 @@ class Command(BaseCommand):
                 context.user_data["role"] = "student"
                 student = Student.objects.get(username=username)
                 student.telegram_chat_id = update.effective_user.id
-                student.status = "started"
+                if student.status not in ["fixed", "waiting"]: student.status = "started"
+                student.save()
                 context.user_data["student"] = student
                 keyboard = [
                     [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_student')],
                     [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_student')],
-                    [InlineKeyboardButton("Отказаться от записи", callback_data='cancel_query')],
+                    [InlineKeyboardButton("<Т. Р.> Отказаться от записи", callback_data='cancel_query')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsStudent.jpg")
             elif username in list(map(lambda x: x.telegram_nickname, list(ProjectManager.objects.all()))):
                 context.user_data["role"] = "pm"
-                context.user_data["pm"] = Student.objects.get(telegram_nickname=username)
+                context.user_data["pm"] = ProjectManager.objects.get(telegram_nickname=username)
                 keyboard = [
                     [InlineKeyboardButton("Посмотреть расписание", callback_data='get_schedule_pm')],
-                    [InlineKeyboardButton("Изменить расписание", callback_data='change_schedule_pm')],
+                    [InlineKeyboardButton("<Т. Р.> Изменить расписание", callback_data='change_schedule_pm')],
                     [InlineKeyboardButton("Сделать рассылку в группы", callback_data='send_mailing_groups')],
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsPM.png")
@@ -102,16 +103,27 @@ class Command(BaseCommand):
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
             keyboard = []
-            context.user_data['pms'] = ProjectManager.objects.all()
-            for ind, pm in enumerate(context.user_data['pms']):
-                keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind+1}')]),
-
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            update.effective_message.reply_text(
-                text=f"""Выберите интервал""",
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
+            print(context.user_data["student"].status)
+            if context.user_data["student"].status != "fixed":
+                context.user_data['pms'] = ProjectManager.objects.all()
+                for ind, pm in enumerate(context.user_data['pms']):
+                    keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind+1}')]),
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                update.effective_message.reply_text(
+                    text=f"""Выберите интервал""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                keyboard = [
+                    [InlineKeyboardButton("В меню", callback_data='to_menu')],
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                update.effective_message.reply_text(
+                    text=f"""Вы уже зафискированы за командой""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
             return 'CHS_TIME_STUDENT'
 
         def ch_time_student_1(update, context):
@@ -186,25 +198,36 @@ class Command(BaseCommand):
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
             print(context.user_data)
-            if context.user_data["student"].period_requested:
-                keyboard = []
-                context.user_data['pms'] = ProjectManager.objects.all()
-                for ind, pm in enumerate(context.user_data['pms']):
-                    keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind + 1}')]),
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                update.effective_message.reply_text(
-                    text=f"""Выберите новый интервал""",
-                    reply_markup=reply_markup,
-                    parse_mode=ParseMode.HTML
-                )
+            if context.user_data["student"].status != "fixed":
+                if context.user_data["student"].period_requested:
+                    keyboard = []
+                    context.user_data['pms'] = ProjectManager.objects.all()
+                    for ind, pm in enumerate(context.user_data['pms']):
+                        keyboard.append([InlineKeyboardButton(pm.period, callback_data=f'ch_time_student_{ind + 1}')]),
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    update.effective_message.reply_text(
+                        text=f"""Выберите новый интервал""",
+                        reply_markup=reply_markup,
+                        parse_mode=ParseMode.HTML
+                    )
+                else:
+                    keyboard = [
+                        [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
+                        [InlineKeyboardButton("В меню", callback_data='to_menu')],
+                    ]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    update.effective_message.reply_text(
+                        text=f"""Сначала отправьте заявку""",
+                        reply_markup=reply_markup,
+                        parse_mode=ParseMode.HTML
+                    )
             else:
                 keyboard = [
-                    [InlineKeyboardButton("Подать заявку", callback_data='send_query')],
                     [InlineKeyboardButton("В меню", callback_data='to_menu')],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 update.effective_message.reply_text(
-                    text=f"""Сначала отправьте заявку""",
+                    text=f"""Вы уже зафискированы за командой""",
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML
                 )
@@ -261,26 +284,66 @@ class Command(BaseCommand):
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
 
-            student = context.user_data["student"]
-            student.period_requested = None
-            student.status = "canceled"
-            student.save()
-            # Добавить удаление из составленного расписания
+            if context.user_data["student"].status != "fixed":
+                student = context.user_data["student"]
+                student.period_requested = None
+                student.status = "canceled"
+                student.save()
+
+                keyboard = [
+                    [InlineKeyboardButton("В меню", callback_data='to_menu')],
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                update.effective_message.reply_text(
+                    text=f"""Ваша заявка отменена""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                keyboard = [
+                    [InlineKeyboardButton("В меню", callback_data='to_menu')],
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                update.effective_message.reply_text(
+                    text=f"""Вы уже зафискированы за командой""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            return 'TIME_CHD'
+
+        def get_schedule_pm(update, context):
+            filename = "Schedule"
+            write_schedule(filename, pm=context.user_data["pm"])
 
             keyboard = [
                 [InlineKeyboardButton("В меню", callback_data='to_menu')],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
+
+            filepath = os.path.join(BASE_DIR, f"{filename}.xlsx")
+            with open(filepath, 'rb') as file:
+                update.effective_message.reply_document(
+                    document=file,
+                    caption=f"""Расписание""",
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML
+                )
+            return 'SCHEDULE_GET'
+
+        def change_schedule_pm(update, context): pass  # <Т. Р.>
+
+        def send_mailing_groups(update, context):
+            send_schedule(BOT)
+            keyboard = [
+                [InlineKeyboardButton("В меню", callback_data='to_menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             update.effective_message.reply_text(
-                text=f"""Ваша заявка отменена""",
+                text=f"""Рассылка отправлена""",
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
-            return 'TIME_CHD'
-
-        def get_schedule_pm(update, context): pass
-        def change_schedule_pm(update, context): pass
-        def send_mailing_groups(update, context): pass
+            return 'SEND_MAILING'
 
         def create_schedule(update, context):
             create_project_teams()
@@ -350,6 +413,7 @@ class Command(BaseCommand):
                     CallbackQueryHandler(ch_time_student_3, pattern='ch_time_student_3'),
                     CallbackQueryHandler(ch_time_student_4, pattern='ch_time_student_4'),
                     CallbackQueryHandler(ch_time_student_5, pattern='ch_time_student_5'),
+                    CallbackQueryHandler(start_conversation, pattern='to_menu'),
                 ],
                 'CHG_TIME_STUDENT': [
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
@@ -359,6 +423,7 @@ class Command(BaseCommand):
                     CallbackQueryHandler(chg_time_student_3, pattern='chg_time_student_3'),
                     CallbackQueryHandler(chg_time_student_4, pattern='chg_time_student_4'),
                     CallbackQueryHandler(chg_time_student_5, pattern='chg_time_student_5'),
+                    CallbackQueryHandler(start_conversation, pattern='to_menu'),
                 ],
                 'TIME_CHD': [
                     CallbackQueryHandler(start_conversation, pattern='to_menu'),
