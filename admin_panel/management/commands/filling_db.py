@@ -64,16 +64,3 @@ class Command(BaseCommand):
         filling_pms_db('dataPms.json')
         filling_students_db('dataStudents.json')
         create_empty_teams()
-
-
-# def main():
-#     Student.objects.all().delete()
-#     ProjectManager.objects.all().delete()
-#
-#     filling_pms_db('../../../dataPms.json')
-#     filling_students_db('../../../dataStudents.json')
-#     create_empty_teams()
-#
-#
-# if __name__ == '__main__':
-#     main()
