@@ -74,4 +74,4 @@ class Team(models.Model):
         app_label = 'admin_panel'
 
     def __str__(self):
-        return f'{self.project_manager} {self.timeslot} {self.status}'
+        return f'{self.project_manager} {self.timeslot}'
