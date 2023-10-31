@@ -36,9 +36,9 @@ class Student(models.Model):
     username = models.CharField(max_length=50, blank=True, null=True)
     telegram_chat_id = models.CharField(max_length=50, blank=True, null=True)
     LEVEL = (
-        ("BG", "beginner"),
-        ("BG+", "beginner+"),
-        ("JN", "junior")
+        ("beginner", "beginner"),
+        ("beginner+", "beginner+"),
+        ("junior", "junior")
     )
     level = models.CharField(max_length=50, choices=LEVEL)
     registration_time = models.DateTimeField(blank=True, null=True)
@@ -61,9 +61,9 @@ class Team(models.Model):
         related_name='timeslots_project_manager'
         )
     LEVEL = (
-        ("BG", "beginner"),
-        ("BG+", "beginner+"),
-        ("JN", "junior")
+        ("beginner", "beginner"),
+        ("beginner+", "beginner+"),
+        ("junior", "junior")
     )
     level = models.CharField(max_length=50, choices=LEVEL)
     status = models.CharField(max_length=20, default='empty')
