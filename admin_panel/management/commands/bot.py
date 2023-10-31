@@ -31,7 +31,6 @@ BOT = None
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         global BOT
-        print("H")
         load_dotenv()
         tg_token = env.str("TG_BOT_TOKEN")
         updater = Updater(token=tg_token, use_context=True)
@@ -44,7 +43,6 @@ class Command(BaseCommand):
             user_id = update.effective_user.id
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
-            print(update)
             username = update.effective_user.username
             keyboard = []
             filepath = ""
@@ -107,7 +105,6 @@ class Command(BaseCommand):
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
             keyboard = []
-            print(context.user_data["student"].status)
             if context.user_data["student"].status != "fixed":
                 context.user_data['pms'] = ProjectManager.objects.all()
                 for ind, pm in enumerate(context.user_data['pms']):
@@ -229,7 +226,6 @@ Trello: {trello}""",
             user_id = update.effective_user.id
             context.user_data['user_first_name'] = user_first_name
             context.user_data['user_id'] = user_id
-            print(context.user_data)
             if context.user_data["student"].status != "fixed":
                 if context.user_data["student"].period_requested:
                     keyboard = []

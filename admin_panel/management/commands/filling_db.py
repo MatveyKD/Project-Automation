@@ -36,14 +36,6 @@ class Command(BaseCommand):
                 data_students = json.load(students_file)
 
             for student in data_students:
-                # current_datetime = timezone.now()
-                # start_date = current_datetime
-                # end_date = current_datetime + timedelta(weeks=2)
-                # random_datetime = start_date + timedelta(seconds=random.randint(
-                #     0,
-                #     int((end_date - start_date).total_seconds())
-                #     ))
-
                 if student.get('Registered'):
                     registered = datetime.datetime.strptime(str(student.get('Registered')), "%d:%m:%y %H:%M")
                 else:

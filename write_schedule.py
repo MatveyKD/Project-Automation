@@ -45,10 +45,6 @@ def format_data_neuds():
         data_set["Level"].append(student.level)
         data_set["Status"].append("waiting")
         data_set["Period requested"].append(student.period_requested)
-        # data_set["Student"].append(student["Student"])
-        # data_set["Level"].append(student["Level"])
-        # data_set["Status"].append(student["Status"])
-        # data_set["Interval-requested"].append(student["Interval-requested"])
     return data_set
 
 
@@ -84,7 +80,6 @@ def write_schedule(file_name, pm=None):
         df_nd.to_excel(writer_obj, sheet_name='Нераспределенные ученики')
         df_all.to_excel(writer_obj, sheet_name='Все ученики')
     writer_obj.close()
-    print('Please check out the Write.xlsx file.')
 
 
 if __name__ == "__main__":

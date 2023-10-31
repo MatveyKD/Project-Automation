@@ -36,7 +36,6 @@ def send_schedule(bot, pm=None):
     else:
         teams = Team.objects.filter(status="full")
     for team in teams:
-        # time, pm, level, trello = team["time"], team["pm"]["name"]+" @"+team["pm"]["tg_username"], team["level"], team["trello"]
         time, pm, level, brief, trello = team.timeslot, team.project_manager.full_name, team.level, team.brief, team.trello_board_link
         if team.project_manager.telegram_nickname:
             pm += " @" + team.project_manager.telegram_nickname
