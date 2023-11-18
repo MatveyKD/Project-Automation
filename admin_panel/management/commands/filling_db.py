@@ -7,11 +7,6 @@ import django
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-os.environ.setdefault(
-    'DJANGO_SETTINGS_MODULE',
-    'project_automation_admin.settings'
-    )
-django.setup()
 
 from create_empty_teams import create_empty_teams
 from admin_panel.models import ProjectManager, Student
