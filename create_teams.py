@@ -8,7 +8,6 @@ from admin_panel.models import StudentTeam
 
 
 def create_project_teams():
-    # Проверку наличия студентов для распределения пока опускаем
     pms = ProjectManager.objects.all()
     for pm in pms:
         period = pm.period
