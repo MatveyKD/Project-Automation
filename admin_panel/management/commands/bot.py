@@ -82,9 +82,8 @@ class Command(BaseCommand):
                 ]
                 filepath = os.path.join(STATIC_URL, "greetingsAdmin.png")
             else:
-                print(type(str(list(env.list("ADMINS"))[0])), str(list(env.list("ADMINS"))[0]), username)
                 update.effective_message.reply_text(
-                    text=f"""Вас нет в списке учеников. Обратитесь к администратору""",
+                    text=f"Вас нет в списке учеников. Обратитесь к администратору",
                     parse_mode=ParseMode.HTML
                 )
                 return
